@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/*
+NOTE: This file is copied from the original gofe library and edited to obtain a new noisy FE scheme!
+*/
+
 package fullysec
 
 import (
