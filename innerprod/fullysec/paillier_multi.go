@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/fentec-project/gofe/data"
-	"github.com/fentec-project/gofe/internal"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/data"
+	"github.com/JasZal/gofe/internal"
+	"github.com/JasZal/gofe/sample"
 )
 
 // PaillierMulti represents a multi input variant of the

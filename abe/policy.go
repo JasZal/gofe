@@ -22,7 +22,7 @@ import (
 
 	"fmt"
 
-	"github.com/fentec-project/gofe/data"
+	"github.com/JasZal/gofe/data"
 )
 
 // MSP represents a monotone span program (MSP) describing a policy defining which

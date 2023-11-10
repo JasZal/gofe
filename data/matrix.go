@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/fentec-project/bn256"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/sample"
 )
 
 // Matrix wraps a slice of Vector elements. It represents a row-major.

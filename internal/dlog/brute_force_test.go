@@ -20,9 +20,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/JasZal/gofe/internal/keygen"
+	"github.com/JasZal/gofe/sample"
 	"github.com/fentec-project/bn256"
-	"github.com/fentec-project/gofe/internal/keygen"
-	"github.com/fentec-project/gofe/sample"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -21,9 +21,9 @@ import (
 	"math/big"
 
 	"github.com/fentec-project/bn256"
-	"github.com/fentec-project/gofe/data"
-	"github.com/fentec-project/gofe/internal/dlog"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/data"
+	"github.com/JasZal/gofe/internal/dlog"
+	"github.com/JasZal/gofe/sample"
 )
 
 // PartFHIPEParams includes public parameters for the partially

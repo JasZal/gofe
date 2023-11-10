@@ -19,7 +19,7 @@ package sample_test
 import (
 	"testing"
 
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/sample"
 )
 
 func TestNormalCDT(t *testing.T) {

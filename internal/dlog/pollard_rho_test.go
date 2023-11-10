@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fentec-project/gofe/internal/keygen"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/internal/keygen"
+	"github.com/JasZal/gofe/sample"
 	"github.com/stretchr/testify/assert"
 )
 

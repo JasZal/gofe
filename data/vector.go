@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/fentec-project/bn256"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/sample"
 	"golang.org/x/crypto/salsa20"
 )
 

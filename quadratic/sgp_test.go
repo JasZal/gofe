@@ -20,9 +20,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/fentec-project/gofe/data"
-	"github.com/fentec-project/gofe/quadratic"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/data"
+	"github.com/JasZal/gofe/quadratic"
+	"github.com/JasZal/gofe/sample"
 	"github.com/stretchr/testify/assert"
 )
 

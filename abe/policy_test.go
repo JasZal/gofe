@@ -20,7 +20,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/fentec-project/gofe/data"
+	"github.com/JasZal/gofe/data"
 	"github.com/stretchr/testify/assert"
 )
 

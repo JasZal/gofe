@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/sample"
 )
 
 // ElGamal holds paramenters for ElGamal scheme.

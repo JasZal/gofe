@@ -24,9 +24,9 @@ import (
 	"strconv"
 
 	"github.com/fentec-project/bn256"
-	"github.com/fentec-project/gofe/data"
-	"github.com/fentec-project/gofe/internal/dlog"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/data"
+	"github.com/JasZal/gofe/internal/dlog"
+	"github.com/JasZal/gofe/sample"
 )
 
 // DMCFEClient is to be instantiated by the client. Idx presents index of the client.

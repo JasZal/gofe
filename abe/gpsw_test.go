@@ -19,8 +19,8 @@ package abe_test
 import (
 	"testing"
 
-	"github.com/fentec-project/gofe/abe"
-	"github.com/fentec-project/gofe/data"
+	"github.com/JasZal/gofe/abe"
+	"github.com/JasZal/gofe/data"
 	"github.com/stretchr/testify/assert"
 )
 

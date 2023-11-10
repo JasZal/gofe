@@ -25,8 +25,8 @@ import (
     "math/big"
     "io"
     "github.com/fentec-project/bn256"
-    "github.com/fentec-project/gofe/data"
-    "github.com/fentec-project/gofe/sample"
+    "github.com/JasZal/gofe/data"
+    "github.com/JasZal/gofe/sample"
 )
 
 // This is a ciphertext policy (CP) multi-authority (MA) attribute based

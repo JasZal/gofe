@@ -23,9 +23,9 @@ import (
 	"crypto/rand"
 
 	"github.com/fentec-project/bn256"
-	"github.com/fentec-project/gofe/data"
-	"github.com/fentec-project/gofe/internal/dlog"
-	"github.com/fentec-project/gofe/sample"
+	"github.com/JasZal/gofe/data"
+	"github.com/JasZal/gofe/internal/dlog"
+	"github.com/JasZal/gofe/sample"
 )
 
 // FHIPEParams holds common parameters used in the scheme. These are:

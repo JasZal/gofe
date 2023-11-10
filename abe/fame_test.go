@@ -19,7 +19,7 @@ package abe_test
 import (
 	"testing"
 
-	"github.com/fentec-project/gofe/abe"
+	"github.com/JasZal/gofe/abe"
 	"github.com/stretchr/testify/assert"
 )
 
