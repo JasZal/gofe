@@ -37,15 +37,15 @@ implementations. It **should not be used in production**.
 
 ## Installing GoFE
 First, download and build the library by running either
-`go install github.com/fentec-project/gofe/...` or
- `go get -u -t github.com/fentec-project/gofe/...` from the terminal (note that this also
+`go install github.com/JasZal/gofe/...` or
+ `go get -u -t github.com/JasZal/gofe/...` from the terminal (note that this also
  downloads and builds all the dependencies of the library).
  Please note that from Go version 1.18 on, `go get` will [no longer build packages](https://golang.org/doc/go-get-install-deprecation),
  and `go install` should be used instead.
  
-To make sure the library works as expected, navigate to your `$GOPATH/pkg/mod/github.com/fentec-project/gofe` 
+To make sure the library works as expected, navigate to your `$GOPATH/pkg/mod/github.com/JasZal/gofe` 
 directory and run `go test -v ./...` . 
-If you are still using Go version below 1.16 or have `GO111MODULE=off` set, navigate to `$GOPATH/src/github.com/fentec-project/gofe` instead.
+If you are still using Go version below 1.16 or have `GO111MODULE=off` set, navigate to `$GOPATH/src/github.com/JasZal/gofe` instead.
 
 ## Using GoFE in your project
 After you have successfully built the library, you can use it in your project.
