@@ -18,16 +18,16 @@
 NOTE: This file is copied from the original gofe library and edited to obtain a new noisy FE scheme!
 */
 
-package fullysec
+package noisy
 
 import (
 	"fmt"
 	"math/big"
 
-	"github.com/fentec-project/bn256"
 	"github.com/JasZal/gofe/data"
 	"github.com/JasZal/gofe/internal/dlog"
 	"github.com/JasZal/gofe/sample"
+	"github.com/fentec-project/bn256"
 )
 
 // OTNHMultiIPEParams represents configuration parameters for the oTNHMultiIPE
