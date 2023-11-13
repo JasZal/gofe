@@ -19,7 +19,7 @@ implementations. It **should not be used in production**.
 ## Installing GoFE
 First, clone the repository via git clone and build the library by running either
 `go install github.com/JasZal/gofe/...` or
- `go get -u -t github.com/JasZal/gofe/...` from the terminal (note that this also
+ `go get -u -t github.com/JasZal/gofe/...` from the terminal inside the cloned repository (note that this also
  downloads and builds all the dependencies of the library).
  Please note that from Go version 1.18 on, `go get` will [no longer build packages](https://golang.org/doc/go-get-install-deprecation),
  and `go install` should be used instead.
