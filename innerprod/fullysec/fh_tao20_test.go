@@ -26,61 +26,56 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFH_Multi_IPE(t *testing.T) {
+
+
+func TestFH_TAO20(t *testing.T) {
 	// choose the parameters for the scheme
 	secLevel := 2
-	vecLen := 2
-	numClient := 1
+	vecLen := 10
 	bound := big.NewInt(128)
 
 	// build the scheme
-	fhmulti := fullysec.NewFHMultiIPE(secLevel, numClient, vecLen, bound, bound)
+	fhtao := fullysec.NewFHTAO20(secLevel, vecLen, bound, bound)
 
 	// generate master secret key and public key
-	masterSecKey, pubKey, err := fhmulti.GenerateKeys()
+	masterSecKey, pubKey, err := fhtao.GenerateKeys()
 	if err != nil {
 		t.Fatalf("Error during keys generation: %v", err)
 	}
+	
 
 	// sample vectors that will be encrypted
 	sampler := sample.NewUniformRange(new(big.Int).Add(new(big.Int).Neg(bound), big.NewInt(1)), bound)
-	x := make(data.Matrix, numClient)
-	for i := 0; i < numClient; i++ {
-		x[i], err = data.NewRandomVector(vecLen, sampler)
-		if err != nil {
-			t.Fatalf("Error during random vector generation: %v", err)
-		}
+
+	x, err := data.NewRandomVector(vecLen, sampler)
+	
+
+	if err != nil {
+		t.Fatalf("Error during random vector generation: %v", err)
 	}
 
-	// simulate different clients (encryptors which should be given a part of the master key)
-	// and encrypt their vectors
-	cipher := make(data.MatrixG1, numClient)
-	clients := make([]*fullysec.FHMultiIPE, numClient)
-	for i := 0; i < numClient; i++ {
-		clients[i] = fullysec.NewFHMultiIPEFromParams(fhmulti.Params)
-		cipher[i], err = clients[i].Encrypt(x[i], masterSecKey.BHat[i])
-		if err != nil {
-			t.Fatalf("Error during encryption: %v", err)
-		}
+	// simulate  client and encrypt the vector
+	client := fullysec.NewFHTAO20FromParams(fhtao.Params)
+	cipher, err := client.Encrypt(x, masterSecKey.BHat)
+	if err != nil {
+		t.Fatalf("Error during encryption: %v", err)
 	}
 
-	// sample inner product vectors and put them in a matrix
-	y := make(data.Matrix, numClient)
-	for i := 0; i < numClient; i++ {
-		y[i], err = data.NewRandomVector(vecLen, sampler)
-		if err != nil {
-			t.Fatalf("Error during random vector generation: %v", err)
-		}
+	// sample inner product vector
+	y, err := data.NewRandomVector(vecLen, sampler)
+	
+	if err != nil {
+		t.Fatalf("Error during random vector generation: %v", err)
 	}
 
 	// derive a functional key for vector y
-	key, err := fhmulti.DeriveKey(y, masterSecKey)
+	key, err := fhtao.DeriveKey(y, masterSecKey.BStarHat)
 	if err != nil {
 		t.Fatalf("Error during key derivation: %v", err)
 	}
 
 	// simulate a decryptor
-	decryptor := fullysec.NewFHMultiIPEFromParams(fhmulti.Params)
+	decryptor := fullysec.NewFHTAO20FromParams(fhtao.Params)
 
 	// decryptor decrypts the inner-product without knowing
 	// vectors x and y
@@ -91,8 +86,10 @@ func TestFH_Multi_IPE(t *testing.T) {
 
 	// check the correctness of the result
 	xyCheck, err := x.Dot(y)
+
 	if err != nil {
 		t.Fatalf("Error during inner product calculation")
 	}
 	assert.Equal(t, xy.Cmp(xyCheck), 0, "obtained incorrect inner product")
+	
 }
