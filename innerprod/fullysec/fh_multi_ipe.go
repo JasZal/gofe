@@ -19,10 +19,10 @@ package fullysec
 import (
 	"math/big"
 
-	"github.com/fentec-project/bn256"
 	"github.com/JasZal/gofe/data"
 	"github.com/JasZal/gofe/internal/dlog"
 	"github.com/JasZal/gofe/sample"
+	"github.com/fentec-project/bn256"
 )
 
 // FHMultiIPEParams represents configuration parameters for the FHMultiIPE
@@ -91,6 +91,7 @@ func NewFHMultiIPEFromParams(params *FHMultiIPEParams) *FHMultiIPE {
 func (f FHMultiIPE) GenerateKeys() (*FHMultiIPESecKey, *bn256.GT, error) {
 	sampler := sample.NewUniformRange(big.NewInt(1), bn256.Order)
 	mu, err := sampler.Sample()
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,6 +148,46 @@ func randomOB(l int, mu *big.Int) (data.Matrix, data.Matrix, error) {
 	BStar = BStar.Mod(bn256.Order)
 
 	return B, BStar, nil
+}
+
+// GenerateKeys generates a pair of master secret key and public key
+// for the scheme. It returns an error in case keys could not be
+// generated.
+func (f FHMultiIPE) GenerateKeysWOS(mu *big.Int) (*FHMultiIPESecKey, *bn256.GT, error) {
+
+	gTMu := new(bn256.GT).ScalarBaseMult(mu)
+	var err error
+	B := make([]data.Matrix, f.Params.NumClients)
+	BStar := make([]data.Matrix, f.Params.NumClients)
+	for i := 0; i < f.Params.NumClients; i++ {
+		B[i], BStar[i], err = randomOB(2*f.Params.VecLen+2*f.Params.SecLevel+1, mu)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	BHat := make([]data.Matrix, f.Params.NumClients)
+	BStarHat := make([]data.Matrix, f.Params.NumClients)
+	for i := 0; i < f.Params.NumClients; i++ {
+		BHat[i] = make(data.Matrix, f.Params.VecLen+f.Params.SecLevel+1)
+		BStarHat[i] = make(data.Matrix, f.Params.VecLen+f.Params.SecLevel)
+		for j := 0; j < f.Params.VecLen+f.Params.SecLevel+1; j++ {
+			if j < f.Params.VecLen {
+				BHat[i][j] = B[i][j]
+				BStarHat[i][j] = BStar[i][j]
+			} else if j == f.Params.VecLen {
+				BHat[i][j] = B[i][j+f.Params.VecLen]
+				BStarHat[i][j] = BStar[i][j+f.Params.VecLen]
+			} else if j < f.Params.VecLen+f.Params.SecLevel {
+				BHat[i][j] = B[i][j-1+f.Params.VecLen+f.Params.SecLevel]
+				BStarHat[i][j] = BStar[i][j+f.Params.VecLen]
+			} else {
+				BHat[i][j] = B[i][j-1+f.Params.VecLen+f.Params.SecLevel]
+			}
+		}
+	}
+
+	return &FHMultiIPESecKey{BHat: BHat, BStarHat: BStarHat}, gTMu, nil
 }
 
 // DeriveKey takes a matrix y whose rows are input vector y_1,...,y_m and
@@ -236,4 +277,19 @@ func (f *FHMultiIPE) Decrypt(cipher data.MatrixG1, key data.MatrixG2, pubKey *bn
 	dec, err := dlog.NewCalc().InBN256().WithNeg().WithBound(bound).BabyStepGiantStep(sum, pubKey)
 
 	return dec, err
+}
+
+// DecryptWOSearch accepts the ciphertext as a matrix whose rows are encryptions of vectors
+// x_1,...,x_m and a functional encryption key corresponding to vectors y_1,...,y_m.
+// It returns the sum of inner products gt^{<x_1,y_1> + ... + <x_m, y_m>}
+func (f *FHMultiIPE) DecryptWOSearch(cipher data.MatrixG1, key data.MatrixG2, pubKey *bn256.GT) *bn256.GT {
+	sum := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
+	for i := 0; i < f.Params.NumClients; i++ {
+		for j := 0; j < 2*f.Params.VecLen+2*f.Params.SecLevel+1; j++ {
+			paired := bn256.Pair(cipher[i][j], key[i][j])
+			sum.Add(paired, sum)
+		}
+	}
+
+	return sum
 }
