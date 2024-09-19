@@ -55,12 +55,7 @@ type FHMGIPEParams struct {
 // revealing vectors x_i,j or y_i,j.
 // The scheme is based on an iFE scheme (TAO20: "Efficient Inner Product Functional Encryption with Full-Hiding Security")
 // and a miFE scheme (DOT18: Full-Hiding (Unbounded) Multi-Input Inner Product Functional Encryption from the k-Linear Assumption)
-// The scheme is slightly modified from the
-// original one to achieve a better performance. The difference is in
-// storing the secret master key as matrices B, BStar, instead of matrices
-// of elliptic curve elements g_1^B, g_2^BStar. This replaces elliptic curves
-// operations with matrix multiplication.
-//
+
 // This struct contains the shared choice for parameters on which the
 // functionality of the scheme depend.
 type FHMGIPE struct {
@@ -73,11 +68,11 @@ type FHMGIPESecKey struct {
 	IMSK  []*FHTAO20SecKey
 }
 
-// FHMGIPEPubKey represents the public key in FHMGIPE scheme.
-//type FHMGIPEPubKey struct {
-//	MiPP *bn256.GT
-//	IPP  []*bn256.GT
-//}
+// FHMGIPESecKey represents a master secret key in FHMGIPE scheme.
+type FHMGIPEEncKey struct {
+	MiSK data.Matrix
+	ISK  data.Matrix
+}
 
 // FHMGIPECT represents a ciphertext in FHMGIPE scheme.
 type FHMGIPECT struct {
@@ -88,7 +83,7 @@ type FHMGIPECT struct {
 // FHMGIPEDK represents a decryption key in FHMGIPE scheme.
 type FHMGIPEDK struct {
 	MiDK data.MatrixG2
-	ICT  []data.VectorG1
+	ICT  data.MatrixG1
 }
 
 // NewFHMGIPE configures a new instance of the scheme. See struct
@@ -112,32 +107,44 @@ func NewFHMGIPEFromParams(params *FHMGIPEParams) *FHMGIPE {
 // GenerateKeys generates a pair of master secret key and public key
 // for the scheme. It returns an error in case keys could not be
 // generated.
-func (f FHMGIPE) GenerateKeys() (*FHMGIPESecKey, *bn256.GT, error) {
-
+func (f FHMGIPE) GenerateKeys() (*FHMGIPESecKey, []*FHMGIPEEncKey, *bn256.GT, error) {
 	sampler := sample.NewUniformRange(big.NewInt(1), bn256.Order)
 	mu, err := sampler.Sample()
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+
+	return f.GenerateKeysWOS(mu)
+}
+
+// GenerateKeys generates a pair of master secret key and public key
+// for the scheme. It returns an error in case keys could not be
+// generated.
+func (f FHMGIPE) GenerateKeysWOS(mu *big.Int) (*FHMGIPESecKey, []*FHMGIPEEncKey, *bn256.GT, error) {
 
 	miFE := NewFHMultiIPE(f.Params.SecLevel, f.Params.NumClients, f.Params.VecLenX1+f.Params.VecLenX2+f.Params.SecLevel+1, f.Params.BoundX1, f.Params.BoundY1)
 	miMSK, pp, err := miFE.GenerateKeysWOS(mu)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	iMSK := make([]*FHTAO20SecKey, f.Params.NumClients)
+	enckey := make([]*FHMGIPEEncKey, f.Params.NumClients)
 
 	for i := 0; i < f.Params.NumClients; i++ {
 		iFE := NewFHTAO20(f.Params.SecLevel, f.Params.VecLenX2+f.Params.SecLevel+1, f.Params.BoundX2, f.Params.BoundY2)
 		iMSK[i], _, err = iFE.GenerateKeysWOS(mu)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
+
+		//make encryption keys
+		enckey[i] = &FHMGIPEEncKey{MiSK: miMSK.BHat[i], ISK: iMSK[i].BStarHat}
+
 	}
 
-	return &FHMGIPESecKey{MiMSK: miMSK, IMSK: iMSK}, pp, nil
+	return &FHMGIPESecKey{MiMSK: miMSK, IMSK: iMSK}, enckey, pp, nil
 }
 
 // DeriveKey takes a matrix y whose rows are input vector (y_1,1, y_2,1),...,(y_1,m, y_2,m) and
@@ -202,7 +209,7 @@ func (f FHMGIPE) DeriveKey(y1 data.Matrix, y2 data.Matrix, msk *FHMGIPESecKey) (
 
 // Encrypt encrypts input vector (x_1, x_2) with the provided part of the master secret key.
 // It returns a ciphertext vector pair (miCT, iCT). If encryption failed, error is returned.
-func (f FHMGIPE) Encrypt(x1, x2 data.Vector, i int, msk *FHMGIPESecKey) (*FHMGIPECT, error) {
+func (f FHMGIPE) Encrypt(x1, x2 data.Vector, i int, sk *FHMGIPEEncKey) (*FHMGIPECT, error) {
 	sampler := sample.NewUniform(bn256.Order)
 	z, err := data.NewRandomVector(f.Params.SecLevel, sampler)
 	if err != nil {
@@ -213,6 +220,7 @@ func (f FHMGIPE) Encrypt(x1, x2 data.Vector, i int, msk *FHMGIPESecKey) (*FHMGIP
 		return nil, err
 	}
 	x1tilde := data.NewConstantVector(f.Params.VecLenX1+f.Params.VecLenX2+f.Params.SecLevel+1, big.NewInt(0))
+
 	for j := 0; j < f.Params.VecLenX1+f.Params.SecLevel; j++ {
 		if j < f.Params.VecLenX1 {
 			x1tilde[j] = x1[j]
@@ -223,7 +231,7 @@ func (f FHMGIPE) Encrypt(x1, x2 data.Vector, i int, msk *FHMGIPESecKey) (*FHMGIP
 
 	params1 := &FHMultiIPEParams{SecLevel: f.Params.SecLevel, NumClients: f.Params.NumClients, VecLen: f.Params.VecLenX1 + f.Params.VecLenX2 + f.Params.SecLevel + 1,
 		BoundX: f.Params.BoundX1, BoundY: f.Params.BoundY1}
-	mict, err := NewFHMultiIPEFromParams(params1).Encrypt(x1tilde, msk.MiMSK.BHat[i])
+	mict, err := NewFHMultiIPEFromParams(params1).Encrypt(x1tilde, sk.MiSK)
 	if err != nil {
 		return nil, err
 	}
@@ -243,11 +251,10 @@ func (f FHMGIPE) Encrypt(x1, x2 data.Vector, i int, msk *FHMGIPESecKey) (*FHMGIP
 	params2 := &FHTAO20Params{SecLevel: f.Params.SecLevel, VecLen: f.Params.VecLenX2 + f.Params.SecLevel + 1,
 		BoundX: f.Params.BoundX2, BoundY: f.Params.BoundY2}
 
-	idk, err := NewFHTAO20FromParams(params2).DeriveKey(x2tilde, msk.IMSK[i].BStarHat)
+	idk, err := NewFHTAO20FromParams(params2).DeriveKey(x2tilde, sk.ISK)
 	if err != nil {
 		return nil, err
 	}
-
 	return &FHMGIPECT{MiCT: mict, IDK: idk}, nil
 }
 
@@ -255,7 +262,7 @@ func (f FHMGIPE) Encrypt(x1, x2 data.Vector, i int, msk *FHMGIPESecKey) (*FHMGIP
 // x_1,...,x_m and a functional encryption key corresponding to vectors y_1,...,y_m.
 // It returns the sum of inner products <x_1,y_1> + ... + <x_m, y_m>. If decryption
 // failed, an error is returned.
-func (f *FHMGIPE) Decrypt(cipher []*FHMGIPECT, dk *FHMGIPEDK, pubKey *bn256.GT) (*big.Int, error) {
+func (f *FHMGIPE) DecryptWOS(cipher []*FHMGIPECT, dk *FHMGIPEDK, pubKey *bn256.GT) *bn256.GT {
 	sum := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
 
 	params1 := &FHMultiIPEParams{SecLevel: f.Params.SecLevel, NumClients: f.Params.NumClients, VecLen: f.Params.VecLenX1 + f.Params.VecLenX2 + f.Params.SecLevel + 1,
@@ -272,6 +279,16 @@ func (f *FHMGIPE) Decrypt(cipher []*FHMGIPECT, dk *FHMGIPEDK, pubKey *bn256.GT) 
 	for i := 0; i < f.Params.NumClients; i++ {
 		sum.Add(ife.DecryptWOSearch(dk.ICT[i], cipher[i].IDK, pubKey), sum)
 	}
+
+	return sum
+}
+
+// Decrypt accepts the ciphertext as a matrix whose rows are encryptions of vectors
+// x_1,...,x_m and a functional encryption key corresponding to vectors y_1,...,y_m.
+// It returns the sum of inner products <x_1,y_1> + ... + <x_m, y_m>. If decryption
+// failed, an error is returned.
+func (f *FHMGIPE) Decrypt(cipher []*FHMGIPECT, dk *FHMGIPEDK, pubKey *bn256.GT) (*big.Int, error) {
+	sum := f.DecryptWOS(cipher, dk, pubKey)
 
 	boundXY1 := new(big.Int).Mul(f.Params.BoundX1, f.Params.BoundY1)
 	boundXY2 := new(big.Int).Mul(f.Params.BoundX2, f.Params.BoundY2)

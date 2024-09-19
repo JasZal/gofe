@@ -90,27 +90,7 @@ func (f FHTAO20) GenerateKeys() (*FHTAO20SecKey, *bn256.GT, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
-	gTMu := new(bn256.GT).ScalarBaseMult(mu)
-
-	B, BStar, err := randomOB(2*f.Params.VecLen+2*f.Params.SecLevel+1, mu)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	BHat := make(data.Matrix, f.Params.VecLen+f.Params.SecLevel)
-	BStarHat := make(data.Matrix, f.Params.VecLen+f.Params.SecLevel)
-	for j := 0; j < f.Params.VecLen+f.Params.SecLevel; j++ {
-		if j < f.Params.VecLen {
-			BHat[j] = B[j]
-			BStarHat[j] = BStar[j]
-		} else if j < f.Params.SecLevel+f.Params.VecLen {
-			BHat[j] = B[j+f.Params.VecLen]
-			BStarHat[j] = BStar[j+f.Params.VecLen+f.Params.SecLevel]
-		}
-	}
-
-	return &FHTAO20SecKey{BHat: BHat, BStarHat: BStarHat}, gTMu, nil
+	return f.GenerateKeysWOS(mu)
 }
 
 // GenerateKeys generates a pair of master secret key and public key
@@ -221,17 +201,16 @@ func (f FHTAO20) Encrypt(x data.Vector, secKey data.Matrix) (data.VectorG1, erro
 // It returns the  inner product <x,y>. If decryption
 // failed, an error is returned.
 func (f *FHTAO20) Decrypt(cipher data.VectorG1, key data.VectorG2, pubKey *bn256.GT) (*big.Int, error) {
-	sum := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
 
-	for j := 0; j < 2*f.Params.VecLen+2*f.Params.SecLevel+1; j++ {
-		paired := bn256.Pair(cipher[j], key[j])
-		sum.Add(paired, sum)
-	}
+	sum := f.DecryptWOSearch(cipher, key, pubKey)
 
 	boundXY := new(big.Int).Mul(f.Params.BoundX, f.Params.BoundY)
 	bound := new(big.Int).Mul(big.NewInt(int64(f.Params.VecLen)), boundXY)
 
 	dec, err := dlog.NewCalc().InBN256().WithNeg().WithBound(bound).BabyStepGiantStep(sum, pubKey)
+	if err != nil {
+		return nil, err
+	}
 
 	return dec, err
 }
@@ -244,7 +223,7 @@ func (f *FHTAO20) DecryptWOSearch(cipher data.VectorG1, key data.VectorG2, pubKe
 
 	for j := 0; j < 2*f.Params.VecLen+2*f.Params.SecLevel+1; j++ {
 		paired := bn256.Pair(cipher[j], key[j])
-		sum.Add(paired, sum)
+		sum = sum.Add(paired, sum)
 	}
 
 	return sum

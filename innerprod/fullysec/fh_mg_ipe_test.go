@@ -39,7 +39,7 @@ func TestFH_Mg_IPE(t *testing.T) {
 	fhmg := fullysec.NewFHMGIPE(secLevel, numClient, vecLenm1, vecLenm2, bound, bound, bound, bound)
 
 	// generate master secret key and public key
-	masterSecKey, pubKey, err := fhmg.GenerateKeys()
+	masterSecKey, enckeys, pubKey, err := fhmg.GenerateKeys()
 	if err != nil {
 		t.Fatalf("Error during keys generation: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestFH_Mg_IPE(t *testing.T) {
 	//encrypt vectors
 	cipher := make([]*fullysec.FHMGIPECT, numClient)
 	for i := 0; i < numClient; i++ {
-		cipher[i], err = fhmg.Encrypt(x1[i], x2[i], i, masterSecKey)
+		cipher[i], err = fhmg.Encrypt(x1[i], x2[i], i, enckeys[i])
 		if err != nil {
 			t.Fatalf("Error during encryption: %v", err)
 		}
