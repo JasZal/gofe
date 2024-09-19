@@ -5,7 +5,13 @@ schemes for _linear_ (e.g. _inner products_) and _quadratic polynomials_.
 For details on how to use and which schemes are implemented, please check out the original github project. 
 
 
-We added two schemes, that are secure noisy FE schemes. 
+We added several schemes:
+Fully-Sec Inner-Product schemes:
+* fh_mg_ipe: a mixed group full-hiding inner product scheme based on "Multi-input Quadratic Functional Encryption from Pairings" from Agrawal, Goyal, Tomida 2021
+* fh_tao20: a single input scheme
+* affine_multi_ipe: a multi-input scheme for affine functionalities, namely Dec(dkf, ct1, ... ctn) = f(x1,...,xn) + c
+  
+
 
 
 ### Before using the library
