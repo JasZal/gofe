@@ -286,7 +286,7 @@ func (f SMNH) DeriveKey(c [][]data.Matrix, noise *big.Int, msk *SMNHSecKey) (*SM
 // x_1,...,x_m and a functional encryption key corresponding to  a vector c.
 // It returns the sum of c(ki,j,k,l)x_i[j]x_k[l].   If decryption
 // failed, an error is returned.
-func (f *SMNH) Decrypt(cipher []*SMNHCT, dk *SMNHDK, maxSum int, pubKey *bn256.GT) (*big.Int, error) {
+func (f *SMNH) Decrypt(cipher []*SMNHCT, dk *SMNHDK, boundRes *big.Int, pubKey *bn256.GT) (*big.Int, error) {
 
 	iFE := fullysec.NewFHTAO20FromParams(&fullysec.FHTAO20Params{SecLevel: f.Params.SecLevel, VecLen: f.Params.VecLen + 4, BoundX: f.Params.BoundX, BoundY: f.Params.BoundY})
 
@@ -314,16 +314,15 @@ func (f *SMNH) Decrypt(cipher []*SMNHCT, dk *SMNHDK, maxSum int, pubKey *bn256.G
 	z := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
 	z.Add(z1, new(bn256.GT).Neg(z3))
 
-	var b int
-	if maxSum != 0 {
-		b = maxSum
+	var bound *big.Int
+	if boundRes.Cmp(big.NewInt(0)) == 0 {
+		b := (f.Params.VecLen * f.Params.VecLen * f.Params.NumClients * f.Params.NumClients) / 2
+		bound = new(big.Int).Mul(big.NewInt(int64(b)), new(big.Int).Mul(f.Params.BoundX, f.Params.BoundX))
+		bound.Mul(bound, f.Params.BoundY)
+		bound.Add(bound, f.Params.BoundNoise)
 	} else {
-		b = f.Params.VecLen * f.Params.VecLen * f.Params.NumClients * f.Params.NumClients / 2
+		bound = boundRes
 	}
-
-	bound := new(big.Int).Mul(big.NewInt(int64(b)), new(big.Int).Mul(f.Params.BoundX, f.Params.BoundX))
-	bound.Mul(bound, f.Params.BoundY)
-	bound.Add(bound, f.Params.BoundNoise)
 
 	dec, err := dlog.NewCalc().InBN256().WithNeg().WithBound(bound).BabyStepGiantStep(z, pubKey)
 
