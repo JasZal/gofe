@@ -369,3 +369,46 @@ func (f *SMNH) DecryptScaling(cipher []*SMNHCT, dk *SMNHDK, maxSum int, s *big.I
 
 	return dec, err
 }
+
+func (f *SMNH) DecryptWOSearch(cipher []*SMNHCT, dk *SMNHDK, boundRes *big.Int, pubKey *bn256.GT) (*big.Int, error) {
+
+	iFE := fullysec.NewFHTAO20FromParams(&fullysec.FHTAO20Params{SecLevel: f.Params.SecLevel, VecLen: f.Params.VecLen + 4, BoundX: f.Params.BoundX, BoundY: f.Params.BoundY})
+
+	miFE := fullysec.NewAffineMultiIPEFromParams(&fullysec.AffineMultiIPEParams{SecLevel: f.Params.SecLevel, NumClients: f.Params.NumClients, VecLen: 3,
+		BoundX: f.Params.BoundX, BoundY: f.Params.BoundY})
+
+	z1 := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
+	ciphermife := make(data.MatrixG1, f.Params.NumClients)
+
+	for i := 0; i < f.Params.NumClients; i++ {
+		ciphermife[i] = cipher[i].MiCT
+		for k := 0; k < f.Params.NumClients; k++ {
+
+			for j := 0; j < f.Params.VecLen; j++ {
+				for l := 0; l < f.Params.VecLen; l++ {
+					if dk.C[i][j][k][l].Cmp(big.NewInt(0)) != 0 {
+						z1.Add(z1, new(bn256.GT).ScalarMult(iFE.DecryptWOSearch(cipher[i].ICT[j], cipher[k].IDK[l], pubKey), dk.C[i][j][k][l]))
+					}
+				}
+			}
+		}
+	}
+
+	z3 := miFE.DecryptWOSearch(ciphermife, dk.MiDK, pubKey)
+	z := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
+	z.Add(z1, new(bn256.GT).Neg(z3))
+
+	var bound *big.Int
+	if boundRes.Cmp(big.NewInt(0)) == 0 {
+		b := (f.Params.VecLen * f.Params.VecLen * f.Params.NumClients * f.Params.NumClients) / 2
+		bound = new(big.Int).Mul(big.NewInt(int64(b)), new(big.Int).Mul(f.Params.BoundX, f.Params.BoundX))
+		bound.Mul(bound, f.Params.BoundY)
+		bound.Add(bound, f.Params.BoundNoise)
+	} else {
+		bound = boundRes
+	}
+
+	//dec, err := dlog.NewCalc().InBN256().WithNeg().WithBound(bound).BabyStepGiantStep(z, pubKey)
+
+	return nil, nil
+}

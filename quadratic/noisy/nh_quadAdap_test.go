@@ -105,8 +105,6 @@ func TestNH_Quad_Adap(t *testing.T) {
 		}
 	}
 
-	fmt.Printf("cN: %v\n", cN)
-
 	// sample noise
 	sampler = sample.NewUniformRange(new(big.Int).Add(new(big.Int).Neg(boundN), big.NewInt(1)), boundN)
 	noise, _ := sampler.Sample()
