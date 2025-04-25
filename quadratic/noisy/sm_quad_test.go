@@ -20,33 +20,33 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/JasZal/gofe/data"
 	"github.com/JasZal/gofe/quadratic/noisy"
 	"github.com/JasZal/gofe/sample"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSMNH_Quad(t *testing.T) {
 	// choose the parameters for the scheme
 	secLevel := 1
-	vecLen := 4
-	numClient := 25
+	vecLen := 1
+	numClient := 2
 	boundX := big.NewInt(30)
 	boundY := big.NewInt(30)
 	boundN := big.NewInt(10)
 
-	fmt.Printf("***********OT noisy Quad: clients: %d, veclen: %d*************\n", numClient, vecLen)
+	//fmt.Printf("***********OT noisy Quad: clients: %d, veclen: %d*************\n", numClient, vecLen)
 
 	// build the scheme
-	start := time.Now()
+	//start := time.Now()
 	fe := noisy.NewSMNH(secLevel, numClient, vecLen, boundX, boundY, boundN)
-	fmt.Println("time Setup: ", time.Since(start))
+	//fmt.Println("time Setup: ", time.Since(start))
 
 	// generate master secret key, encryption keys and public key
-	start = time.Now()
+	//start = time.Now()
 	masterSecKey, enckeys, pubKey, err := fe.GenerateKeys()
-	fmt.Println("time Generate Keys: ", time.Since(start))
+	//fmt.Println("time Generate Keys: ", time.Since(start))
 	if err != nil {
 		t.Fatalf("Error during keys generation: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestSMNH_Quad(t *testing.T) {
 	}
 
 	// encrypt vectors
-	start = time.Now()
+	//start = time.Now()
 	cipher := make([]*noisy.SMNHCT, numClient)
 	for i := 0; i < numClient; i++ {
 		cipher[i], err = fe.Encrypt(enckeys[i], x[i])
@@ -73,7 +73,7 @@ func TestSMNH_Quad(t *testing.T) {
 			t.Fatalf("Error during encryption: %v", err)
 		}
 	}
-	fmt.Println("time Encryption total: ", time.Since(start))
+	//fmt.Println("time Encryption total: ", time.Since(start))
 
 	// sample inner product vectors and put them in a matrix
 
@@ -107,9 +107,9 @@ func TestSMNH_Quad(t *testing.T) {
 	noise, _ := sampler.Sample()
 
 	// derive a functional key for vector c
-	start = time.Now()
+	//start = time.Now()
 	key, err := fe.DeriveKey(c, noise, masterSecKey)
-	fmt.Println("time Derive Keys: ", time.Since(start))
+	//fmt.Println("time Derive Keys: ", time.Since(start))
 	if err != nil {
 		fmt.Printf("Error during derive key: %v", err)
 	}
@@ -120,11 +120,10 @@ func TestSMNH_Quad(t *testing.T) {
 	// decryptor decrypts the quadratic function without knowing
 	// vectors x and c
 
-	//todo change
-	//sum, err := decryptor.Decrypt(cipher, key, 0, pubKey)
-	start = time.Now()
-	decryptor.DecryptWOSearch(cipher, key, big.NewInt(0), pubKey)
-	fmt.Println("time Decryption WO disc. Logarithm search: ", time.Since(start))
+	sum, err := decryptor.Decrypt(cipher, key, big.NewInt(0), pubKey)
+	//start = time.Now()
+	decryptor.DecryptWOSearch(cipher, key, pubKey)
+	//fmt.Println("time Decryption WO disc. Logarithm search: ", time.Since(start))
 
 	if err != nil {
 
@@ -145,6 +144,6 @@ func TestSMNH_Quad(t *testing.T) {
 	}
 	sumCheck.Add(sumCheck, noise)
 
-	//assert.Equal(t, sum.Cmp(sumCheck), 0, "obtained incorrect sum")
+	assert.Equal(t, sum.Cmp(sumCheck), 0, "obtained incorrect sum")
 
 }
