@@ -221,7 +221,7 @@ func (f AffineMultiIPE) DeriveKey(y data.Matrix, secKey *AffineMultiIPESecKey, c
 		return nil, err
 	}
 
-	//compute modulus of sum, negate it add noise to it/////////////
+	//compute modulus of sum, negate it add constant value to it
 	sum.Neg(sum).Mod(sum, bn256.Order)
 	sum.Add(sum, c)
 	gamma[0][f.Params.NumClients-1] = sum
