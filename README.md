@@ -19,7 +19,7 @@ Inner-Product schemes:
 	* ot_group/ot_prf: one-time noisy multi-input schemes based on the OTP classical or with a PRF according to "Enhancing Noisy Functional Encryption for Privacy-Preserving Machine Learning" from Scheu-Hachtel, Zalonis, 2025.
 
 Quadratic schemes:
-* Simple:
+* Noisy:
 	* nh_quad(_adapted): a noisy quadratic MIFE scheme based on "Multi-input quadratic functional encryption: Stronger security, broader functionality." by Agrawal, Goyal and Tomida 2022 and its adapted variant for faster setup.
 	* sm_quad: a noisy one-time quadratic MIFE scheme based on "A New Quadratic Noisy Functional Encryption Scheme and Its Application for Privacy Preserving Machine Learning" by Zalonis, Scheu-Hachtel and Armknecht, 2025.
 
