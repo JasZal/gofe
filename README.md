@@ -14,12 +14,12 @@ Inner-Product schemes:
 	* (labeled_key_)affine_multi_ipe: a multi-input scheme for affine functionalities, namely Dec(dkf, ct1, ... ctn) = f(x1,...,xn) + c, extended from fh_multi_ip, also as labeled-key variant.
 
 
-* Noisy-Sec Inner-Product schemes:
+* Noisy-Sec:
 	* ot_nh_multi_ipe: a one-time noisy multi-input scheme based on "Differentially Private Functional Encryption" from Zalonis, Armknecht and Scheu-Hachtel, 2024.
 	* ot_group/ot_prf: one-time noisy multi-input schemes based on the OTP classical or with a PRF according to "Enhancing Noisy Functional Encryption for Privacy-Preserving Machine Learning" from Scheu-Hachtel, Zalonis, 2025.
 
 Quadratic schemes:
-* Noisy:
+* Noisy-Sec:
 	* nh_quad(_adapted): a noisy quadratic MIFE scheme based on "Multi-input quadratic functional encryption: Stronger security, broader functionality." by Agrawal, Goyal and Tomida 2022 and its adapted variant for faster setup.
 	* sm_quad: a noisy one-time quadratic MIFE scheme based on "A New Quadratic Noisy Functional Encryption Scheme and Its Application for Privacy Preserving Machine Learning" by Zalonis, Scheu-Hachtel and Armknecht, 2025.
 

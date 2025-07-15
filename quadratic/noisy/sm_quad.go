@@ -46,7 +46,7 @@ type SMNHParams struct {
 // based on an quadratic function, displayed as a vector c[(i,j,k,l)] and a distribution Delta, so that a decryptor can
 // decrypt the sum of c[(i,j,k,l)]xi[j]xk[l] + noise where noise is sampled via the distribution Delta, without revealing
 // intermediate results.
-// The scheme is based on a evolved miFE scheme (DOT18: Full-Hiding (Unbounded) Multi-Input Inner Product Functional Encryption from the k-Linear Assumption) and a
+// The scheme is based on an evolved miFE scheme (DOT18: Full-Hiding (Unbounded) Multi-Input Inner Product Functional Encryption from the k-Linear Assumption) and a
 //iFE scheme (TAO20: "Efficient Inner Product Functional Encryption with Full-Hiding Security")
 
 // This struct contains the shared choice for parameters on which the

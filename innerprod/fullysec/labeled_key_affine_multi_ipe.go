@@ -248,10 +248,9 @@ func (f LKADOT) DeriveKey(y data.Matrix, secKey *LKADOTSecKey, c *big.Int, label
 	return keyMat.MulG2(), nil
 }
 
-// todo
+// Generate Tag from PRF based on AES
 func generateTag(key []byte, label []byte) (*big.Int, error) {
 
-	//	ct := make(data.Vector, sm.Params.VecLen)
 	var err error
 	//generate and initialize PRF
 	c, err := aes.NewCipher(key)
@@ -272,7 +271,7 @@ func generateTag(key []byte, label []byte) (*big.Int, error) {
 // Encrypt encrypts input vector x with the provided part of the master secret key, associated with a  label.
 // It returns a ciphertext vector. If encryption failed, error is returned.
 func (f LKADOT) Encrypt(x data.Vector, partSecKey data.Matrix, prfKey []byte, label []byte) (data.VectorG1, error) {
-	//generate t_l = PRF(K_i, label)
+
 	tag, err := generateTag(prfKey, label)
 	if err != nil {
 		return nil, err
@@ -310,13 +309,7 @@ func (f LKADOT) Encrypt(x data.Vector, partSecKey data.Matrix, prfKey []byte, la
 // It returns the sum of inner products <x_1,y_1> + ... + <x_m, y_m>. If decryption
 // failed, an error is returned.
 func (f *LKADOT) Decrypt(cipher data.MatrixG1, key data.MatrixG2, pubKey *bn256.GT) (*big.Int, error) {
-	sum := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
-	for i := 0; i < f.Params.NumClients; i++ {
-		for j := 0; j < 2*f.Params.VecLen+2*f.Params.SecLevel+2; j++ {
-			paired := bn256.Pair(cipher[i][j], key[i][j])
-			sum.Add(paired, sum)
-		}
-	}
+	sum := f.DecryptWOSearch(cipher, key, pubKey)
 
 	boundXY := new(big.Int).Mul(f.Params.BoundX, f.Params.BoundY)
 	bound := new(big.Int).Mul(big.NewInt(int64(f.Params.NumClients*f.Params.VecLen)), boundXY)
@@ -326,9 +319,7 @@ func (f *LKADOT) Decrypt(cipher data.MatrixG1, key data.MatrixG2, pubKey *bn256.
 	return dec, err
 }
 
-// Decrypt accepts the ciphertext as a matrix whose rows are encryptions of vectors
-// x_1,...,x_m and a functional encryption key corresponding to vectors y_1,...,y_m.
-// It returns the sum of inner products <x_1,y_1> + ... + <x_m, y_m> in group representation.
+// Performs the decryption without the final search step
 func (f *LKADOT) DecryptWOSearch(cipher data.MatrixG1, key data.MatrixG2, pubKey *bn256.GT) *bn256.GT {
 	sum := new(bn256.GT).ScalarBaseMult(big.NewInt(0))
 	for i := 0; i < f.Params.NumClients; i++ {

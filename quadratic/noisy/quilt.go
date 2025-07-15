@@ -31,7 +31,23 @@ import (
 	"github.com/fentec-project/bn256"
 )
 
-// todo
+// Quilt represents a One-Time Noise Hiding Quadratic Functional Encryption scheme
+// It allows clients to encrypt vectors {x_1, ..., x_m} and derive a secret key
+// based on an quadratic function, displayed as a vector c[(i,j,k,l)] and a distribution Delta, so that a decryptor can
+// decrypt the sum of c[(i,j,k,l)]xi[j]xk[l] + noise where noise is sampled via the distribution Delta, without revealing
+// intermediate results.
+// The scheme is based on a function-hiding labeled key ot-MCFE scheme and a noise-hiding labeled ot-MCFE  scheme
+
+// Params represents configuration parameters for the Quilt scheme instance.
+// SecLevel: The parameter defines the security assumption of the scheme
+// NumClients: The number of clients participating
+// VecLenX: The length of vectors x that clients want to encrypt.
+// BoundX: The value by which the coordinates of encrypted vectors x are bounded.
+// BoundY: The value by which the coordinates of inner product vectors y are bounded.
+// BoundN: The value by which the noise is bounded.
+// Modulus: The modulus for all schemes
+// paramsOT: parameters of the ot scheme
+// paramsFH: parameters of the fh scheme
 type OTNMCFEParams struct {
 	SecLevel   int      //k
 	NumClients int      //n
@@ -50,19 +66,20 @@ type OTNMCFE struct {
 	Params *OTNMCFEParams
 }
 
-// todo
+// OTNMCFESecKey represents a master secret key in QUILT.
 type OTNMCFESecKey struct {
 	fhMSK *fullysec.LKADOTSecKey
 	nhMSK [][]byte
 	otMSK [][]byte
 }
 
+// OTNMCFEPP represents the public parameters in QUILT.
 type OTNMCFEPP struct {
 	fhPP    *bn256.GT
 	modulus *big.Int
 }
 
-// todo
+// OTNMCFEEncKey represents the encryption keys in QUILT.
 type OTNMCFEEncKey struct {
 	fhEncKey  []data.Matrix
 	prfEncKey [][]byte
@@ -70,19 +87,25 @@ type OTNMCFEEncKey struct {
 	otEncKey  []byte
 }
 
-// todo
+// OTNMCFEDecKey represents the decryption keys in QUILT.
 type OTNMCFEDecKey struct {
 	fhDecKey data.MatrixG2
 	nhDecKey data.Matrix
 }
 
-// todo
+// OTNMCFECT represents the ciphertexts in QUILT.
 type OTNMCFECT struct {
 	nhCT data.Vector
 	otCT data.Vector
 	fhCT data.MatrixG1
 }
 
+// Quilt represents a One-Time Noise Hiding Quadratic Functional Encryption scheme
+// It allows clients to encrypt vectors {x_1, ..., x_m} and derive a secret key
+// based on an quadratic function, displayed as a vector c[(i,j,k,l)] and a distribution Delta, so that a decryptor can
+// decrypt the sum of c[(i,j,k,l)]xi[j]xk[l] + noise where noise is sampled via the distribution Delta, without revealing
+// intermediate results.
+// The scheme is based on a function-hiding labeled key ot-MCFE scheme and a noise-hiding labeled ot-MCFE  scheme
 func NewOTNMCFE(secLevel, numClients, vecLen int, boundX, boundY, boundN *big.Int) *OTNMCFE {
 	//use hybrid version, fhmife works best for small vecLen, nmife the contrary
 	nmife := noisy.NewOTPRFModPrime(numClients, vecLen, bn256.Order, true)
@@ -146,7 +169,7 @@ func (f OTNMCFE) GenerateKeys() (*OTNMCFESecKey, []OTNMCFEEncKey, *OTNMCFEPP, er
 
 }
 
-// Encrypt encrypts an input vectors x associated with a slot i with the
+// Encrypt encrypts an input vectors x associated with a slot i  and a label l with the
 // encryptio key ek_i. It returns the appropriate ciphertext.
 // If ciphertext could not be generated, it returns an error.
 func (f OTNMCFE) Encrypt(ek OTNMCFEEncKey, x data.Vector, label []byte) (*OTNMCFECT, error) {
@@ -182,6 +205,7 @@ func (f OTNMCFE) Encrypt(ek OTNMCFEEncKey, x data.Vector, label []byte) (*OTNMCF
 }
 
 // DeriveKey derives the functional encryption key for a quadratic function associated with a true quadratic term, a linear term and a constant term.
+// The key is associated with a label l
 // It returns an error if the key could not be derived.
 func (f OTNMCFE) DeriveKey(yQuad [][]data.Matrix, yLin data.Matrix, yCon, noise *big.Int, label []byte, msk *OTNMCFESecKey) (*OTNMCFEDecKey, error) {
 	maxWorkers := runtime.NumCPU()
@@ -293,8 +317,7 @@ func (f OTNMCFE) Decrypt(dk *OTNMCFEDecKey, yQuad [][]data.Matrix, ct []*OTNMCFE
 	return dec, err
 }
 
-//todo parallelisieren
-
+// Performs the decryption procedure without the final search step
 func (f OTNMCFE) DecryptWOSearch(dk *OTNMCFEDecKey, yQuad [][]data.Matrix, ct []*OTNMCFECT, pp *OTNMCFEPP) (*bn256.GT, error) {
 	var err error
 
@@ -333,7 +356,7 @@ func (f OTNMCFE) DecryptWOSearch(dk *OTNMCFEDecKey, yQuad [][]data.Matrix, ct []
 	}
 	wg.Wait()
 
-	//use skalar multiplicaty
+	//use skalar multiplication
 	// z_ij * otct_ij
 	sum := big.NewInt(0)
 
