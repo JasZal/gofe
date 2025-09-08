@@ -63,7 +63,7 @@ func NewOTPRF(numclients, veclen int, boundX, boundY, boundN *big.Int) *OTPRF {
 
 	mod := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(8*x)), nil)
 
-	fmt.Println("n:", numclients, " m:", veclen, "Bound res:", b, "needed byte: ", x, "mod: ", mod)
+	//fmt.Println("n:", numclients, " m:", veclen, "Bound res:", b, "needed byte: ", x, "mod: ", mod)
 
 	params := &OTPRFParams{NumClients: numclients,
 		VecLen: veclen, ModulusL: mod, BoundX: boundX, BoundY: boundY, BoundN: boundN, ZetaBytes: int(x)}
