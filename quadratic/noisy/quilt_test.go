@@ -35,8 +35,8 @@ func TestSM_NMCFE(t *testing.T) {
 	boundX := big.NewInt(128)
 	boundY := big.NewInt(128)
 	boundN := big.NewInt(10)
-	vecLen := 1
-	numClient := 10
+	vecLen := 10
+	numClient := 50
 	label := make([]byte, 16)
 	//nrWorkers := 10
 
@@ -44,7 +44,7 @@ func TestSM_NMCFE(t *testing.T) {
 
 	// build the scheme
 	start := time.Now()
-	fe := noisy.NewOTNMCFE(secLevel, numClient, vecLen, boundX, boundY, boundN)
+	fe := noisy.NewOTNMCFE(secLevel, numClient, vecLen, boundX, boundY, boundN, nil)
 	fmt.Println("time Setup: ", time.Since(start))
 
 	// generate master secret key, encryption keys and public key

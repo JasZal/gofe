@@ -17,6 +17,7 @@
 package noisy
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -31,13 +32,6 @@ import (
 	"github.com/fentec-project/bn256"
 )
 
-// Quilt represents a One-Time Noise Hiding Quadratic Functional Encryption scheme
-// It allows clients to encrypt vectors {x_1, ..., x_m} and derive a secret key
-// based on an quadratic function, displayed as a vector c[(i,j,k,l)] and a distribution Delta, so that a decryptor can
-// decrypt the sum of c[(i,j,k,l)]xi[j]xk[l] + noise where noise is sampled via the distribution Delta, without revealing
-// intermediate results.
-// The scheme is based on a function-hiding labeled key ot-MCFE scheme and a noise-hiding labeled ot-MCFE  scheme
-
 // Params represents configuration parameters for the Quilt scheme instance.
 // SecLevel: The parameter defines the security assumption of the scheme
 // NumClients: The number of clients participating
@@ -49,15 +43,16 @@ import (
 // paramsOT: parameters of the ot scheme
 // paramsFH: parameters of the fh scheme
 type OTNMCFEParams struct {
-	SecLevel   int      //k
-	NumClients int      //n
-	VecLen     int      //m
-	BoundX     *big.Int //X
-	BoundY     *big.Int //C
-	BoundNoise *big.Int //Delta
-	Modulus    *big.Int //modulus p
-	paramsOT   *noisy.OTPRFParams
-	paramsFH   *fullysec.LKADOTParams
+	SecLevel   int //k
+	NumClients int //n
+	VecLen     int //m
+	// BoundX     *big.Int //X
+	// BoundY     *big.Int //C
+	// BoundNoise *big.Int //Delta
+	BoundT   *big.Int
+	Modulus  *big.Int //modulus p
+	paramsOT *noisy.OTPRFParams
+	paramsFH *fullysec.LKADOTParams
 }
 
 // This struct contains the shared choice for parameters on which the
@@ -79,7 +74,7 @@ type OTNMCFEPP struct {
 	modulus *big.Int
 }
 
-// OTNMCFEEncKey represents the encryption keys in QUILT.
+// OTNMCFEEncKey represents the encryption key in QUILT.
 type OTNMCFEEncKey struct {
 	fhEncKey  []data.Matrix
 	prfEncKey [][]byte
@@ -106,13 +101,31 @@ type OTNMCFECT struct {
 // decrypt the sum of c[(i,j,k,l)]xi[j]xk[l] + noise where noise is sampled via the distribution Delta, without revealing
 // intermediate results.
 // The scheme is based on a function-hiding labeled key ot-MCFE scheme and a noise-hiding labeled ot-MCFE  scheme
-func NewOTNMCFE(secLevel, numClients, vecLen int, boundX, boundY, boundN *big.Int) *OTNMCFE {
+func NewOTNMCFE(secLevel, numClients, vecLen int, boundX, boundY, boundN, boundT *big.Int) *OTNMCFE {
 	//use hybrid version, fhmife works best for small vecLen, nmife the contrary
 	nmife := noisy.NewOTPRFModPrime(numClients, vecLen, bn256.Order, true)
 	fhmife := fullysec.NewLKADOT(secLevel, numClients*vecLen, 1, boundX, boundY)
 
+	if boundT == nil {
+		if (boundX == nil) || (boundY == nil) || (boundN == nil) {
+			log.Println(errors.New("either boundT or the other bounds need to be set"))
+			return nil
+		}
+
+		//compute overall bound
+		//quad
+		b := (vecLen * vecLen * numClients * numClients)
+		boundT = new(big.Int).Mul(big.NewInt(int64(b)), new(big.Int).Mul(boundX, boundX))
+		boundT.Mul(boundT, boundY)
+		//lin
+		boundT.Add(boundT, new(big.Int).Mul(big.NewInt(int64(vecLen*numClients)), new(big.Int).Mul(boundX, boundY)))
+		//cons
+		boundT.Add(boundT, new(big.Int).Add(boundN, boundY))
+
+	}
+
 	params := &OTNMCFEParams{SecLevel: secLevel, NumClients: numClients,
-		VecLen: vecLen, BoundX: boundX, BoundY: boundY, BoundNoise: boundN, paramsOT: nmife.Params, paramsFH: fhmife.Params,
+		VecLen: vecLen, BoundT: boundT, paramsOT: nmife.Params, paramsFH: fhmife.Params,
 		Modulus: nmife.Params.ModulusL}
 
 	return &OTNMCFE{Params: params}
@@ -169,7 +182,7 @@ func (f OTNMCFE) GenerateKeys() (*OTNMCFESecKey, []OTNMCFEEncKey, *OTNMCFEPP, er
 
 }
 
-// Encrypt encrypts an input vectors x associated with a slot i  and a label l with the
+// Encrypt encrypts an input vectors x associated with a slot i and a label l with the
 // encryptio key ek_i. It returns the appropriate ciphertext.
 // If ciphertext could not be generated, it returns an error.
 func (f OTNMCFE) Encrypt(ek OTNMCFEEncKey, x data.Vector, label []byte) (*OTNMCFECT, error) {
@@ -206,7 +219,8 @@ func (f OTNMCFE) Encrypt(ek OTNMCFEEncKey, x data.Vector, label []byte) (*OTNMCF
 
 // DeriveKey derives the functional encryption key for a quadratic function associated with a true quadratic term, a linear term and a constant term.
 // The key is associated with a label l
-// It returns an error if the key could not be derived.
+//
+//	It returns an error if the key could not be derived.
 func (f OTNMCFE) DeriveKey(yQuad [][]data.Matrix, yLin data.Matrix, yCon, noise *big.Int, label []byte, msk *OTNMCFESecKey) (*OTNMCFEDecKey, error) {
 	maxWorkers := runtime.NumCPU()
 
@@ -218,7 +232,6 @@ func (f OTNMCFE) DeriveKey(yQuad [][]data.Matrix, yLin data.Matrix, yCon, noise 
 	nhdeckey := data.NewConstantMatrix(f.Params.NumClients, f.Params.VecLen, big.NewInt(0))
 
 	//exract zeta values
-
 	zeta := data.NewConstantMatrix(f.Params.NumClients, f.Params.VecLen, big.NewInt(0))
 	for i := 0; i < f.Params.NumClients; i++ {
 		zeta[i], err = otmife.ReturnZeta(label, msk.otMSK[i])
@@ -240,9 +253,10 @@ func (f OTNMCFE) DeriveKey(yQuad [][]data.Matrix, yLin data.Matrix, yCon, noise 
 	conFH := new(big.Int).Set(new(big.Int).Neg(new(big.Int).Add(yCon, noise)))
 	conFH.Mod(conFH, f.Params.Modulus)
 
+	//parallelize keyGeneration
 	var wg sync.WaitGroup
 	workerPool := make(chan struct{}, maxWorkers)
-	var conFhMu sync.Mutex // to safely merge localConFH into globalConFH
+	var conFhMu sync.Mutex
 
 	for i := 0; i < f.Params.NumClients; i++ {
 		wg.Add(1)
@@ -303,18 +317,10 @@ func (f OTNMCFE) Decrypt(dk *OTNMCFEDecKey, yQuad [][]data.Matrix, ct []*OTNMCFE
 		return nil, err
 	}
 
-	//quad
-	b := (f.Params.VecLen * f.Params.VecLen * f.Params.NumClients * f.Params.NumClients)
-	bound := new(big.Int).Mul(big.NewInt(int64(b)), new(big.Int).Mul(f.Params.BoundX, f.Params.BoundX))
-	bound.Mul(bound, f.Params.BoundY)
-	//lin
-	bound.Add(bound, new(big.Int).Mul(big.NewInt(int64(f.Params.VecLen*f.Params.NumClients)), new(big.Int).Mul(f.Params.BoundX, f.Params.BoundY)))
-	//cons
-	bound.Add(bound, new(big.Int).Add(f.Params.BoundNoise, f.Params.BoundY))
-
-	dec, err := dlog.NewCalc().InBN256().WithNeg().WithBound(bound).BabyStepGiantStep(r, pp.fhPP)
+	dec, err := dlog.NewCalc().InBN256().WithNeg().WithBound(f.Params.BoundT).BabyStepGiantStep(r, pp.fhPP)
 
 	return dec, err
+
 }
 
 // Performs the decryption procedure without the final search step
@@ -378,7 +384,7 @@ func (f OTNMCFE) DecryptWOSearch(dk *OTNMCFEDecKey, yQuad [][]data.Matrix, ct []
 
 	}
 
-	//decrypt
+	//decrypt without search
 	fhmife := fullysec.NewLKADOTFromParams(f.Params.paramsFH)
 	r_2 := fhmife.DecryptWOSearch(fhCTs, dk.fhDecKey, pp.fhPP)
 

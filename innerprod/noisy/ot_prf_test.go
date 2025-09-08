@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/JasZal/gofe/data"
 	"github.com/JasZal/gofe/innerprod/noisy"
@@ -30,11 +31,11 @@ import (
 func TestSimpleOTPRF(t *testing.T) {
 	// choose the parameters for the schem
 
-	vecLen := 6
-	numClient := 5
+	vecLen := 200
+	numClient := 1000
 	boundX := big.NewInt(128)
 	boundN := big.NewInt(128)
-
+	start := time.Now()
 	// build the scheme
 	fe := noisy.NewOTPRF(numClient, vecLen, boundX, boundX, boundN)
 	//mod := fe.Params.ModulusL
@@ -98,7 +99,7 @@ func TestSimpleOTPRF(t *testing.T) {
 	// vectors x and c
 
 	sum, err := decryptor.Decrypt(cipher, key, y)
-
+	fmt.Println("time total: ", time.Since(start))
 	if err != nil {
 
 		t.Fatalf("Error during decryption: %v", err)
