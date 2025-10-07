@@ -74,3 +74,24 @@ type Bit struct {
 func NewBit() *UniformRange {
 	return NewUniform(big.NewInt(2))
 }
+
+// Sign samples a single random bit (value -1 or 1).
+type Sign struct {
+}
+
+// NewSign returns an instance of Sign sampler
+func NewSign() *Sign {
+	return &Sign{}
+}
+
+// Sample samples random bit from {-1,1}.
+func (u *Sign) Sample() (*big.Int, error) {
+	res, err := rand.Int(rand.Reader, big.NewInt(2))
+	if err != nil {
+		return nil, err
+	}
+
+	res.Sub(new(big.Int).Mul(res, big.NewInt(2)), big.NewInt(1))
+
+	return res, err
+}
