@@ -77,18 +77,16 @@ func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
 			mat[i] = vec
 		}
 	}
-	
+
 	wg.Add(runtime.NumCPU())
 	for w := 0; w < runtime.NumCPU(); w++ {
 		go worker()
 	}
 
-
 	for i := 0; i < rows; i++ {
 		jobs <- i
 	}
 	close(jobs)
-
 
 	wg.Wait()
 
@@ -183,23 +181,21 @@ func (m Matrix) Transpose() Matrix {
 		defer wg.Done()
 		for i := range jobs {
 
-	for i := 0; i < m.Cols(); i++ {
-		transposed[i], _ = m.GetCol(i)
+			//for i := 0; i < m.Cols(); i++ {
+			transposed[i], _ = m.GetCol(i)
+		}
 	}
-}
 
 	wg.Add(runtime.NumCPU())
 	for w := 0; w < runtime.NumCPU(); w++ {
 		go worker()
 	}
 
-	
 	for i := 0; i < m.Cols(); i++ {
 		jobs <- i
 	}
 	close(jobs)
 
-	
 	wg.Wait()
 
 	mT, _ := NewMatrix(transposed)
@@ -337,19 +333,17 @@ func (m Matrix) Mul(other Matrix) (Matrix, error) {
 			}
 		}
 	}
-	
+
 	wg.Add(runtime.NumCPU())
 	for w := 0; w < runtime.NumCPU(); w++ {
 		go worker()
 	}
 
-	
 	for i := 0; i < m.Rows(); i++ {
 		jobs <- i
 	}
 	close(jobs)
 
-	
 	wg.Wait()
 
 	return NewMatrix(prod)
