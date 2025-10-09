@@ -57,7 +57,7 @@ func NewMatrix(vectors []Vector) (Matrix, error) {
 // with random elements sampled by the provided sample.Sampler.
 // Returns an error in case of sampling failure.
 func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
-	fmt.Println("data.matrix: parallelized sampling")
+	fmt.Print("data.matrix: parallelized sampling")
 	mat := make([]Vector, rows)
 
 	var wg sync.WaitGroup
@@ -89,6 +89,8 @@ func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
 	close(jobs)
 
 	wg.Wait()
+
+	fmt.Println("--finished")
 
 	return NewMatrix(mat)
 }
@@ -311,6 +313,8 @@ func (m Matrix) Sub(other Matrix) (Matrix, error) {
 // The result is returned in a new Matrix.
 // Error is returned if m and other have different dimensions.
 func (m Matrix) Mul(other Matrix) (Matrix, error) {
+
+	fmt.Print("data.matrix: parallelized multiplication")
 	if m.Cols() != other.Rows() {
 		return nil, fmt.Errorf("cannot multiply matrices")
 	}
@@ -346,6 +350,7 @@ func (m Matrix) Mul(other Matrix) (Matrix, error) {
 
 	wg.Wait()
 
+	fmt.Println("-- finished")
 	return NewMatrix(prod)
 }
 
