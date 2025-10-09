@@ -19,9 +19,11 @@ package data
 import (
 	"fmt"
 	"math/big"
+	"runtime"
+	"sync"
 
-	"github.com/fentec-project/bn256"
 	"github.com/JasZal/gofe/sample"
+	"github.com/fentec-project/bn256"
 )
 
 // Matrix wraps a slice of Vector elements. It represents a row-major.
@@ -57,14 +59,37 @@ func NewMatrix(vectors []Vector) (Matrix, error) {
 func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
 	mat := make([]Vector, rows)
 
-	for i := 0; i < rows; i++ {
-		vec, err := NewRandomVector(cols, sampler)
-		if err != nil {
-			return nil, err
-		}
+	var wg sync.WaitGroup
+	jobs := make(chan int, rows)
 
-		mat[i] = vec
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
+			//for i := 0; i < rows; i++ {
+			vec, err := NewRandomVector(cols, sampler)
+			if err != nil {
+				return nil, err
+			}
+
+			mat[i] = vec
+		}
 	}
+	
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+
+	for i := 0; i < rows; i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+
+	wg.Wait()
 
 	return NewMatrix(mat)
 }
@@ -148,9 +173,33 @@ func (m Matrix) GetCol(i int) (Vector, error) {
 // the result in a new Matrix.
 func (m Matrix) Transpose() Matrix {
 	transposed := make([]Vector, m.Cols())
+
+	var wg sync.WaitGroup
+	jobs := make(chan int, m.Cols())
+
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
 	for i := 0; i < m.Cols(); i++ {
 		transposed[i], _ = m.GetCol(i)
 	}
+}
+
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+	
+	for i := 0; i < m.Cols(); i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	
+	wg.Wait()
 
 	mT, _ := NewMatrix(transposed)
 
@@ -270,13 +319,37 @@ func (m Matrix) Mul(other Matrix) (Matrix, error) {
 	}
 
 	prod := make([]Vector, m.Rows())
-	for i := 0; i < m.Rows(); i++ {
-		prod[i] = make([]*big.Int, other.Cols())
-		for j := 0; j < other.Cols(); j++ {
-			otherCol, _ := other.GetCol(j)
-			prod[i][j], _ = m[i].Dot(otherCol)
+
+	var wg sync.WaitGroup
+	jobs := make(chan int, m.Rows())
+
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
+			//for i := 0; i < m.Rows(); i++ {
+			prod[i] = make([]*big.Int, other.Cols())
+			for j := 0; j < other.Cols(); j++ {
+				otherCol, _ := other.GetCol(j)
+				prod[i][j], _ = m[i].Dot(otherCol)
+			}
 		}
 	}
+	
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+	
+	for i := 0; i < m.Rows(); i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	
+	wg.Wait()
 
 	return NewMatrix(prod)
 }
