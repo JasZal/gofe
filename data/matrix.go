@@ -71,7 +71,7 @@ func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
 			//for i := 0; i < rows; i++ {
 			vec, err := NewRandomVector(cols, sampler)
 			if err != nil {
-				return nil, err
+				//return nil, err
 			}
 
 			mat[i] = vec
