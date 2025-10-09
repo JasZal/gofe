@@ -57,6 +57,7 @@ func NewMatrix(vectors []Vector) (Matrix, error) {
 // with random elements sampled by the provided sample.Sampler.
 // Returns an error in case of sampling failure.
 func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
+	fmt.Println("data.matrix: parallelized sampling")
 	mat := make([]Vector, rows)
 
 	var wg sync.WaitGroup
