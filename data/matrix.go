@@ -57,7 +57,6 @@ func NewMatrix(vectors []Vector) (Matrix, error) {
 // with random elements sampled by the provided sample.Sampler.
 // Returns an error in case of sampling failure.
 func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
-	fmt.Print("data.matrix: parallelized sampling")
 	mat := make([]Vector, rows)
 
 	var wg sync.WaitGroup
@@ -89,8 +88,6 @@ func NewRandomMatrix(rows, cols int, sampler sample.Sampler) (Matrix, error) {
 	close(jobs)
 
 	wg.Wait()
-
-	fmt.Println("--finished")
 
 	return NewMatrix(mat)
 }
@@ -387,7 +384,7 @@ func (m Matrix) MulVec(v Vector) (Vector, error) {
 		go worker()
 	}
 
-	for i := 0; i < len(v); i++ {
+	for i := 0; i < len(m); i++ {
 		jobs <- i
 	}
 	close(jobs)
