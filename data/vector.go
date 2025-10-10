@@ -19,9 +19,11 @@ package data
 import (
 	"fmt"
 	"math/big"
+	"runtime"
+	"sync"
 
-	"github.com/fentec-project/bn256"
 	"github.com/JasZal/gofe/sample"
+	"github.com/fentec-project/bn256"
 	"golang.org/x/crypto/salsa20"
 )
 
@@ -40,12 +42,33 @@ func NewRandomVector(len int, sampler sample.Sampler) (Vector, error) {
 	vec := make([]*big.Int, len)
 	var err error
 
-	for i := 0; i < len; i++ {
-		vec[i], err = sampler.Sample()
-		if err != nil {
-			return nil, err
+	var wg sync.WaitGroup
+	jobs := make(chan int, len)
+
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
+			//for i := 0; i < len; i++ {
+			vec[i], err = sampler.Sample()
+			if err != nil {
+				//return nil, err
+				fmt.Println("error while sampling random vector")
+			}
 		}
 	}
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+	for i := 0; i < len; i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	wg.Wait()
 
 	return NewVector(vec), nil
 }

@@ -314,7 +314,6 @@ func (m Matrix) Sub(other Matrix) (Matrix, error) {
 // Error is returned if m and other have different dimensions.
 func (m Matrix) Mul(other Matrix) (Matrix, error) {
 
-	fmt.Print("data.matrix: parallelized multiplication")
 	if m.Cols() != other.Rows() {
 		return nil, fmt.Errorf("cannot multiply matrices")
 	}
@@ -350,7 +349,6 @@ func (m Matrix) Mul(other Matrix) (Matrix, error) {
 
 	wg.Wait()
 
-	fmt.Println("-- finished")
 	return NewMatrix(prod)
 }
 
@@ -372,9 +370,29 @@ func (m Matrix) MulVec(v Vector) (Vector, error) {
 	}
 
 	res := make(Vector, m.Rows())
-	for i, row := range m {
-		res[i], _ = row.Dot(v)
+	var wg sync.WaitGroup
+	jobs := make(chan int, len(m))
+
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
+			//for i, row := range m {
+			res[i], _ = m[i].Dot(v)
+		}
 	}
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+	for i := 0; i < len(v); i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	wg.Wait()
 
 	return res, nil
 }
