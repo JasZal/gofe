@@ -225,10 +225,31 @@ func (m Matrix) CheckDims(rows, cols int) bool {
 // The result is returned in a new Matrix.
 func (m Matrix) Mod(modulo *big.Int) Matrix {
 	vectors := make([]Vector, m.Rows())
+	var wg sync.WaitGroup
+	jobs := make(chan int, m.Rows())
 
-	for i, v := range m {
-		vectors[i] = v.Mod(modulo)
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
+			//for i, v := range m {
+			vectors[i] = m[i].Mod(modulo)
+
+		}
 	}
+
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+	for i := 0; i < m.Rows(); i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	wg.Wait()
 
 	matrix, _ := NewMatrix(vectors)
 

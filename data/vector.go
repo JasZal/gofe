@@ -208,9 +208,30 @@ func (v Vector) Neg() Vector {
 func (v Vector) Add(other Vector) Vector {
 	sum := make([]*big.Int, len(v))
 
-	for i, c := range v {
-		sum[i] = new(big.Int).Add(c, other[i])
+	var wg sync.WaitGroup
+	jobs := make(chan int, len(v))
+
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
+			//for i, c := range v {
+			sum[i] = new(big.Int).Add(v[i], other[i])
+		}
 	}
+
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+	for i := 0; i < len(v); i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	wg.Wait()
 
 	return NewVector(sum)
 }
@@ -219,9 +240,31 @@ func (v Vector) Add(other Vector) Vector {
 // The result is returned in a new Vector.
 func (v Vector) Sub(other Vector) Vector {
 	sub := make([]*big.Int, len(v))
-	for i, c := range v {
-		sub[i] = new(big.Int).Sub(c, other[i])
+
+	var wg sync.WaitGroup
+	jobs := make(chan int, len(v))
+
+	worker := func() {
+
+		defer wg.Done()
+		for i := range jobs {
+
+			//for i, c := range v {
+			sub[i] = new(big.Int).Sub(v[i], other[i])
+		}
 	}
+
+	wg.Add(runtime.NumCPU())
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker()
+	}
+
+	for i := 0; i < len(v); i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	wg.Wait()
 
 	return sub
 }
